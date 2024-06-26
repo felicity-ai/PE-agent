@@ -1,0 +1,139 @@
+
+diff --git a/src/components/dashboard/recent-sales.tsx b/src/components/dashboard/recent-sales.tsx
+index 6c400e5..2f4e974 100644
+--- a/src/components/dashboard/recent-sales.tsx
++++ b/src/components/dashboard/recent-sales.tsx
+@@ -127,20 +127,19 @@ export const useRecentSales = (): RecentSale[] => {
+   const searchParams = useSearchParams();
+   const value = searchParams.get("price");
+ 
+-  return MOCK_DATA.filter((sale) => {
+-    if (value) {
+-      if (value === "high") {
+-        return sale.avatar === "OM";
+-      }
+-      if (value === "med") {
+-        return sale.avatar === "IN";
+-      }
+-      return (
+-        sale.avatar === "JL" || sale.avatar === "WK" || sale.avatar === "SD"
+-      );
+-    }
+-
+-    return true;
++        return MOCK_DATA.filter((sale) => {
++            if (value) {
++                const saleAmount = parseFloat(sale.amount.replace(/[^0-9.-]+/g, ""));
++                if (value === "high") {
++                    return saleAmount > 1000;
++                }
++                if (value === "med") {
++                    return saleAmount <= 1000 && saleAmount > 500;
++                }
++                return saleAmount <= 500;
++            }
++            return true;
++        });
+   });
+ };
+ 
+diff --git a/test-filter.js b/test-filter.js
+new file mode 100644
+index 0000000..8c3aad9
+--- /dev/null
++++ b/test-filter.js
+@@ -0,0 +1,52 @@
++const { useRecentSales } = require('./src/components/dashboard/recent-sales');
++
++// Mock the useSearchParams hook to simulate different filter values
++const useSearchParams = () => {
++  return {
++    get: (param) => {
++      if (param === 'price') {
++        // Simulate different price filter values
++        return 'high'; // Change this value to 'med' or 'low' to test different filters
++      }
++      return null;
++    },
++  };
++};
++
++// Mock the data for testing
++const MOCK_DATA = [
++  {
++    avatar: "OM",
++    email: "olivia.martin@email.com",
++    name: "Olivia Martin",
++    amount: "+$1,999.00",
++    transactions: [],
++  },
++  {
++    avatar: "IN",
++    email: "isabella.nguyen@email.com",
++    name: "Isabella Nguyen",
++    amount: "+$600.00",
++    transactions: [],
++  },
++  {
++    avatar: "WK",
++    email: "william.kim@email.com",
++    name: "William Kim",
++    amount: "+$99.00",
++    transactions: [],
++  },
++  {
++    avatar: "SD",
++    email: "sofia.davis@email.com",
++    name: "Sofia Davis",
++    amount: "+$39.00",
++    transactions: [],
++  },
++];
++
++// Override the useRecentSales function to use the mock searchParams and data
++const filteredSales = useRecentSales(MOCK_DATA, useSearchParams);
++
++console.log('Filtered Sales:', filteredSales);
++
+diff --git a/test_filter.py b/test_filter.py
+new file mode 100644
+index 0000000..cbefd5e
+--- /dev/null
++++ b/test_filter.py
+@@ -0,0 +1,36 @@
++import re
++
++# Mock data similar to the MOCK_DATA in the recent-sales.tsx file
++mock_data = [
++    {"avatar": "OM", "email": "olivia.martin@email.com", "name": "Olivia Martin", "amount": "+$1,999.00"},
++    {"avatar": "IN", "email": "isabella.nguyen@email.com", "name": "Isabella Nguyen", "amount": "+$600.00"},
++    {"avatar": "WK", "email": "william.kim@email.com", "name": "William Kim", "amount": "+$99.00"},
++    {"avatar": "SD", "email": "sofia.davis@email.com", "name": "Sofia Davis", "amount": "+$39.00"},
++]
++
++# Simulated filter values
++filter_values = ["high", "med", "low"]
++
++# Function to filter sales based on the amount
++def filter_sales(data, filter_value):
++    filtered_sales = []
++    for sale in data:
++        # Remove currency symbol and commas, convert to float
++        sale_amount = float(re.sub(r'[^\d.]', '', sale["amount"]))
++        if filter_value == "high":
++            if sale_amount > 1000:
++                filtered_sales.append(sale)
++        elif filter_value == "med":
++            if 500 < sale_amount <= 1000:
++                filtered_sales.append(sale)
++        elif filter_value == "low":
++            if sale_amount <= 500:
++                filtered_sales.append(sale)
++    return filtered_sales
++
++# Test the filter logic with different filter values
++for value in filter_values:
++    print(f"Filtering with value '{value}':")
++    print(filter_sales(mock_data, value))
++    print()
++
